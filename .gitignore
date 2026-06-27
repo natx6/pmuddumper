@@ -1,0 +1,26 @@
+# Session files
+*session.session
+
+# Databases
+*.db
+*.db-wal
+*.db-shm
+
+# Downloaded media
+media_thumbs/
+media_queue/
+telegram_dump/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.env
+
+# Generated files
+*.html
+gallery.py
+
+# OS
+.DS_Store
+Thumbs.db
