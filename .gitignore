@@ -24,3 +24,10 @@ gallery.py
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+
+# Progress
+last_message_id.txt
+media_manifest.db
