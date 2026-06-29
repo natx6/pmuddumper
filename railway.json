@@ -1,0 +1,10 @@
+{
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "python api_server.py --no-reload --host 0.0.0.0",
+    "restartPolicyType": "ON_FAILURE",
+    "healthcheckPath": "/api/stats"
+  }
+}
