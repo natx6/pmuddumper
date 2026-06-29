@@ -633,13 +633,14 @@ _sync_state = {'running': False, 'done': 0, 'total': 0, 'dialogs': 0}
 @app.post('/api/sync')
 async def trigger_sync(full: bool = False):
     """Scan all dialogs and cache message metadata (no media downloads)."""
-    if _sync_state['running']:
+    if _sync_state.get('running'):
         return {'status': 'already_running'}
 
     _sync_state['running'] = True
     _sync_state['done'] = 0
     _sync_state['total'] = 0
     _sync_state['full'] = full
+    _sync_state['error'] = None
 
     async def do_sync():
         global _conn
@@ -751,7 +752,10 @@ async def trigger_sync(full: bool = False):
             print(f"Sync complete: {total_msgs} new messages across {len(dialogs)} chats")
 
         except Exception as e:
+            _sync_state['error'] = str(e)
             print(f"Sync error: {e}")
+            import traceback
+            traceback.print_exc()
         finally:
             _sync_state['running'] = False
 
@@ -762,7 +766,13 @@ async def trigger_sync(full: bool = False):
 @app.get('/api/sync_progress')
 def sync_progress():
     """Check sync progress."""
-    return _sync_state
+    return {
+        'running': _sync_state.get('running', False),
+        'done': _sync_state.get('done', 0),
+        'total': _sync_state.get('total', 0),
+        'full': _sync_state.get('full', False),
+        'error': _sync_state.get('error'),
+    }
 
 
 # ===== SETTINGS =====
@@ -1163,22 +1173,41 @@ async function saveSettings() {
 }
 
 async function startSync(full) {
-  const btn = document.getElementById('syncBtn');
-  const fbtn = document.getElementById('fullSyncBtn');
+  const btn = document.querySelector('[onclick*="startSync"]');
   const prog = document.getElementById('prog') || document.getElementById('syncProg');
-  btn.disabled = true;
-  if (fbtn) fbtn.style.display = 'none';
-  if (prog) prog.textContent = 'Starting...';
-  await fetch('/api/sync' + (full ? '?full=true' : ''), {method:'POST'});
-  const iv = setInterval(async () => {
-    const p = await api('/api/sync_progress');
-    if (prog) prog.textContent = p.running ? (p.done + '/' + p.total + ' chats' + (p.full ? ' (full)' : '')) : 'Complete!';
-    if (!p.running) {
-      clearInterval(iv);
-      btn.disabled = false;
-          setTimeout(() => location.reload(), 500);
+  if (btn) btn.disabled = true;
+  if (prog) { prog.textContent = 'Starting...'; prog.style.color = '#5b5b6a'; }
+  try {
+    const r = await fetch('/api/sync' + (full ? '?full=true' : ''), {method:'POST'});
+    const data = await r.json();
+    if (data.status === 'already_running') {
+      if (prog) prog.textContent = 'Sync already running...';
     }
-  }, 1000);
+    const iv = setInterval(async () => {
+      try {
+        const p = await api('/api/sync_progress');
+        if (p.error) {
+          if (prog) { prog.textContent = 'Error: ' + p.error; prog.style.color = '#ff4757'; }
+          clearInterval(iv);
+          if (btn) btn.disabled = false;
+          return;
+        }
+        if (prog) prog.textContent = p.running ? (p.done + '/' + p.total + ' chats' + (p.full ? ' (full)' : '')) : 'Complete!';
+        if (!p.running) {
+          clearInterval(iv);
+          if (btn) btn.disabled = false;
+          setTimeout(() => location.reload(), 1000);
+        }
+      } catch(e) {
+        if (prog) { prog.textContent = 'Error: ' + e.message; prog.style.color = '#ff4757'; }
+        clearInterval(iv);
+        if (btn) btn.disabled = false;
+      }
+    }, 1000);
+  } catch(e) {
+    if (prog) { prog.textContent = 'Connection error: ' + e.message; prog.style.color = '#ff4757'; }
+    if (btn) btn.disabled = false;
+  }
 }
 
 function esc(s) { if(!s)return ''; const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
