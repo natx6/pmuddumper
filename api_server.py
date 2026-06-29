@@ -31,7 +31,7 @@ import uvicorn
 
 # ===== CONFIG =====
 DEFAULT_DB = os.getenv('HOARD_DB', 'hoard.db')
-DEFAULT_PORT = int(os.getenv('HOARD_PORT', '8765'))
+DEFAULT_PORT = int(os.getenv('PORT', os.getenv('HOARD_PORT', '8765')))
 STATE = {
     'api_id': int(os.getenv('TG_API_ID', 30172652)),
     'api_hash': os.getenv('TG_API_HASH', '4b388db2483b7268e5e1dccf8f429c3a'),
@@ -420,8 +420,8 @@ def api_export(chat_id: int = 0, format: str = 'json'):
 MEDIA_THUMBS_DIR = 'media_thumbs'
 
 @app.get('/media/{filename}')
-def serve_media(filename: str):
-    """Serve downloaded media thumbnails."""
+def serve_media(filename: str, dl: bool = False):
+    """Serve downloaded media thumbnails. Add ?dl=1 for forced download."""
     # Basic security: only allow expected filename patterns
     name, _, ext = filename.partition('.')
     if ext not in ('jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4'):
@@ -430,7 +430,8 @@ def serve_media(filename: str):
     if os.path.exists(path):
         mime = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png',
                 'webp': 'image/webp', 'gif': 'image/gif', 'mp4': 'video/mp4'}
-        return FileResponse(path, media_type=mime.get(ext, 'application/octet-stream'))
+        headers = {'Content-Disposition': f'attachment; filename="{filename}"'} if dl else {}
+        return FileResponse(path, media_type=mime.get(ext, 'application/octet-stream'), headers=headers)
     return HTMLResponse('', status_code=404)
 
 
@@ -862,6 +863,7 @@ HTML = r'''<!DOCTYPE html>
   <select id="chatSelect" onchange="selectChat(this.value)" style="display:none">
     <option value="">Select a chat...</option>
   </select>
+  <button class="btn" onclick="refreshChat()">Refresh</button>
   <button class="btn" onclick="showSettings()" style="margin-left:auto">Settings</button>
 </div>
 <div class="main" id="main">
@@ -883,7 +885,7 @@ HTML = r'''<!DOCTYPE html>
     <div class="lb-m">
       <span id="lbMeta"></span>
       <span id="lbCount"></span>
-      <a id="lbDl" href="#">Download</a>
+      <a id="lbDl" href="#" download>Download</a>
     </div>
   </div>
 </div>
@@ -1026,7 +1028,7 @@ function renderItem(m, idx) {
     '<div class="t">' +
     '<img src="' + url + '" onerror="retryImg(this,\'' + cid + '\',' + mid + ')" onload="this.style.opacity=1">' +
     '</div>' +
-    '<div class="i"><span>' + d + '</span><span class="sv">' + esc(s) + '</span></div></div>';
+    '<div class="i"><span>' + d + '</span><a href="' + url + '?dl=1" download class="sv" style="text-decoration:none">Save</a></div></div>';
 }
 
 function retryImg(img, cid, mid) {
@@ -1052,7 +1054,7 @@ function showMore() {
 function dlAll() {
   _items.forEach(m => {
     const a = document.createElement('a');
-    a.href = '/media/' + m.chat_id + '_' + m.msg_id + '.jpg';
+    a.href = '/media/' + m.chat_id + '_' + m.msg_id + '.jpg?dl=1';
     a.download = m.chat_id + '_' + m.msg_id + '.jpg';
     a.click();
   });
@@ -1078,7 +1080,9 @@ function renderLB() {
   document.getElementById('lbM').innerHTML = '<img src="' + url + '" onclick="window.open(\''+url+'\')">';
   document.getElementById('lbMeta').textContent = s + '  ' + d;
   document.getElementById('lbCount').textContent = (_lbIdx+1) + '/' + _items.length;
-  document.getElementById('lbDl').href = url;
+  const dl = document.getElementById('lbDl');
+  dl.href = url + '?dl=1';
+  dl.download = m.chat_id + '_' + m.msg_id + '.jpg';
   // Show caption if exists
   let capEl = document.getElementById('lbCaption');
   if (caption) {
@@ -1105,6 +1109,21 @@ document.addEventListener('keydown', function(e) {
 });
 
 // === Settings ===
+async function refreshChat() {
+  const sel = document.getElementById('chatSelect');
+  const chatId = sel ? sel.value : '';
+  // Quick sync to get latest messages
+  await fetch('/api/sync', {method:'POST'});
+  // Wait a moment then reload the current chat
+  setTimeout(() => {
+    if (chatId) {
+      selectChat(chatId);
+    } else {
+      location.reload();
+    }
+  }, 1500);
+}
+
 async function showSettings() {
   const main = document.getElementById('main');
   const s = await api('/api/settings');
