@@ -11,21 +11,21 @@ alwaysApply: true
 
 - Write the best code, not the smallest: the algorithm and data structure chosen before the first line, nothing done twice, and the complexity named when it is not obvious.
 - Dead or inert UI is a bug: remove it, never stub it.
-- App UX must be easy for anyone: plain language, daily rituals as numbered steps, one subtle action per section, onboarding for first-timers, and a first run that ships empty rather than demo-seeded.
-- Never delete an action: keep it and record who, what and why — a void is an event with a reason.
+- App UX must be easy for anyone: plain language, daily rituals as numbered steps, one subtle action per section, onboarding for first-timers, a first run that ships empty, never seeded.
+- Never delete an action: keep it and record who, what and why.
 - No pricing tiers: one price everyone can afford.
 - Local-first: a feature must not add a cloud, a container, or a hosting bill.
 - A screen must not scroll or jiggle; the theme covers the whole surface, not a panel inside it.
 - Prefer constant in-place UI over auto-dismiss toasts; info text at body size, not headline.
 - Marketing copy: professional, never 'AI-ish' — `patterns/copy.md`.
-- Ghana apps favour speed over compliance theatre; NHIS and drug-logbook integration optional; school staffing is one class teacher through primary and subject teachers from JHS — support both.
+- Ghana apps favour speed over compliance theatre; NHIS and drug-logbook optional; staffing is one class teacher to primary's end, subject teachers from JHS — support both.
 - On 'execute', do it: commits, pushes, private repos, suites. Leaving that to the owner is the failure.
 - Project pages are drafted into `fleeting/`; `projects/` is written by the owner.
-- Dependency bumps go patch and minor without asking; a major waits. `vendor/tauri-plugin-sql` is never bumped.
+- Dependency bumps go patch and minor without asking; a major waits. `vendor/tauri-plugin-sql` never bumped.
 - Missing repos are cloned and their dependencies installed without asking — local, nothing leaves the machine.
 - A red suite is maintenance, not an audit: fix, verify, commit and push in one pass.
-- An engine update is rewired without asking, with the hashes recorded so the restore is provable.
-- Audits are staged: audit → list only → wait for 'yes' → execute; fixes are batched blocker → high → medium → low with every suite verified, and red, uncommitted or unpushed is fixed in that pass — what changes what the app *is* waits.
+- An engine update is rewired without asking, hashes recorded so the restore is provable.
+- Audits are staged: audit → list only → wait for 'yes' → execute; fixes batched blocker → high → medium → low, every suite verified; red/uncommitted/unpushed fixed in that pass — what changes what the app *is* waits.
 - Four still wait for the owner: a force-push, deleting outside /tmp, billing or credentials, the Praxis production schema.
 - In Hermes, key-like identifiers are redacted in tool output — verify with node --check, git diff or md5, never read_file.
 - Minimal targeted changes: small diffs, root-cause fixes, no drive-by refactors, no gold-plating.
